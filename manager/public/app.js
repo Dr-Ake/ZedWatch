@@ -388,16 +388,16 @@ function renderWhitelist() {
   const users = state.whitelist || [];
   $('#whitelist-count').textContent = `${users.length} USER${users.length === 1 ? '' : 'S'}`;
   $('#whitelist-list').innerHTML = users.length ? users.map((user) => `
-    <div class="account-row">
+    <div class="account-row${user.enabled ? '' : ' off'}">
       <div class="account-avatar">${escapeHtml(user.username.slice(0, 2).toUpperCase())}</div>
-      <div><strong>${escapeHtml(user.username)}</strong><small>${user.enabled ? 'Cleared to enter' : 'Disabled'}</small></div>
+      <div><strong>${escapeHtml(user.username)}</strong><small>${user.enabled ? 'Cleared to enter' : 'Disabled'} &middot; ${user.passwordStored ? 'Recovery password stored' : 'Player-chosen password'}</small></div>
       <span class="badge ${user.enabled ? 'safe' : ''}">${user.enabled ? 'ACTIVE' : 'DISABLED'}</span>
       <div class="row-actions">
-        <button data-user-action="rotate" data-username="${escapeHtml(user.username)}">Rotate</button>
-        <button data-user-action="${user.enabled ? 'disable' : 'rotate'}" data-username="${escapeHtml(user.username)}">${user.enabled ? 'Disable' : 'Re-enable'}</button>
+        <button data-user-action="reset" data-username="${escapeHtml(user.username)}">Reset password</button>
+        <button data-user-action="${user.enabled ? 'disable' : 'enable'}" data-username="${escapeHtml(user.username)}">${user.enabled ? 'Disable' : 'Enable'}</button>
         <button class="danger-link" data-user-action="remove" data-username="${escapeHtml(user.username)}">Remove</button>
       </div>
-    </div>`).join('') : '<div class="empty">No whitelist accounts are recorded.</div>';
+    </div>`).join('') : '<div class="empty">No player accounts have successfully connected or been added yet.</div>';
   $$('#whitelist-list button').forEach((button) => { button.disabled = !state.status?.running || state.busy; });
 }
 
@@ -479,8 +479,14 @@ function renderActivity(items) {
 }
 
 async function refreshStatus() {
-  state.status = await api('/status');
+  const [status, whitelist] = await Promise.all([
+    api('/status'),
+    state.activePage === 'players' ? api('/whitelist') : Promise.resolve(null),
+  ]);
+  state.status = status;
+  if (whitelist) state.whitelist = whitelist.users || [];
   renderStatus();
+  if (whitelist) renderWhitelist();
 }
 
 async function refreshAll() {
@@ -510,6 +516,10 @@ async function selectPage(name) {
     renderSettings();
   }
   if (name === 'activity') renderActivity(await api(`/activity?limit=${ACTIVITY_LIMIT}`));
+  if (name === 'players') {
+    state.whitelist = (await api('/whitelist')).users || [];
+    renderWhitelist();
+  }
   if (name === 'backups') {
     state.backups = await api('/backups');
     renderBackups();
@@ -620,11 +630,18 @@ function bindAccessControls() {
     const button = event.target.closest('[data-user-action]');
     if (!button) return;
     const { userAction: action, username } = button.dataset;
-    if (action !== 'rotate' && !confirmAction(`${action === 'remove' ? 'Remove' : 'Disable'} ${username}?`)) return;
+    const prompts = {
+      reset: `Reset ${username}'s account password? Their current password will stop working.`,
+      remove: `Remove ${username}'s account? In password mode they can create it again if they still know the shared invite code.`,
+      disable: `Disable ${username}? They will be blocked until you enable the account again.`,
+      enable: `Enable ${username}'s account again?`,
+    };
+    if (!confirmAction(prompts[action] || `Change ${username}?`)) return;
     try {
-      const result = await runAction(`${action === 'rotate' ? 'Rotating' : action === 'remove' ? 'Removing' : 'Disabling'} ${username}`,
+      const verbs = { reset: 'Resetting password for', remove: 'Removing', disable: 'Disabling', enable: 'Enabling' };
+      const result = await runAction(`${verbs[action] || 'Updating'} ${username}`,
         () => api(`/whitelist/${action}`, { method: 'POST', body: { username } }));
-      if (result.password) showCredential(`${username} password rotated`, result.password);
+      if (result.password) showCredential(`${username} password reset`, result.password, 'Send this new account password to the player privately.');
     } catch {}
   });
   $('#broadcast-form').addEventListener('submit', async (event) => {

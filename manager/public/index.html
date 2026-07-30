@@ -86,7 +86,7 @@
             <div class="panel-head"><div><p class="eyebrow">PERIMETER CONTROL</p><h3>Who gets through?</h3></div><span id="access-badge" class="badge">WHITELIST</span></div>
             <div class="segmented" role="group" aria-label="Access mode">
               <button id="mode-whitelist" data-mode="whitelist" class="active"><strong>Whitelist</strong><small>Only named accounts</small></button>
-              <button id="mode-password" data-mode="password"><strong>Password</strong><small>Anyone with the code</small></button>
+              <button id="mode-password" data-mode="password"><strong>Password</strong><small>Invite code + player accounts</small></button>
             </div>
             <div class="setting-row">
               <div><strong>In-game server browser</strong><p>Visibility never weakens the selected access protection.</p></div>
@@ -145,20 +145,20 @@
       <section class="page" data-panel="players">
         <div class="two-column">
           <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">WHITELIST ROSTER</p><h3>Cleared survivors</h3><p>Accounts are created through the live server and receive individual passwords.</p></div><span id="whitelist-count" class="badge">0 USERS</span></div>
+            <div class="panel-head"><div><p class="eyebrow">PLAYER ACCOUNTS</p><h3>Cleared survivors</h3><p>Password-mode accounts appear after their first successful connection. Player-chosen passwords cannot be viewed, but an administrator can reset them.</p></div><span id="whitelist-count" class="badge">0 USERS</span></div>
             <form id="add-user-form" class="inline-form">
               <label><span>USERNAME</span><input id="new-username" required maxlength="32" placeholder="Survivor name"></label>
               <label><span>PASSWORD</span><input id="new-user-password" type="password" minlength="10" placeholder="Leave blank to generate"></label>
               <button class="button primary" type="submit">Add account</button>
             </form>
-            <p class="fine-print">The server must be running to add, disable, remove, or rotate an account.</p>
+            <p class="fine-print">The server must be running to add, enable, disable, remove, or reset an account password.</p>
             <div id="whitelist-list" class="account-list"></div>
           </article>
 
           <aside class="stack">
             <article class="panel">
               <div class="panel-head"><div><p class="eyebrow">SHARED ACCESS</p><h3>Password mode code</h3></div></div>
-              <p>Stored securely and activated only when password mode is selected. You can check it at any time.</p>
+              <p>This is the shared server invite code. Each player also chooses a separate account password that protects their name and character.</p>
               <div class="password-view">
                 <label class="field"><span>CURRENT PASSWORD</span><input id="shared-password-current" type="password" readonly placeholder="Click Show password" aria-label="Current shared password"></label>
                 <div class="password-actions">

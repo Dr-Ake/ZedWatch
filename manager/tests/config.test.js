@@ -103,6 +103,13 @@ test('custom shared passwords accept visible values without unsafe whitespace or
   assert.throws(() => validateSharedPassword('line\nbreak'), /control characters/);
 });
 
+test('numeric-looking installed passwords can be replaced with text passwords', () => {
+  const numericPassword = iniFixture.replace('Password=private', 'Password=4242');
+  const parsed = parseIni(numericPassword).entries.find((entry) => entry.key === 'Password');
+  assert.equal(parsed.type, 'text');
+  assert.match(updateIni(numericPassword, { Password: 'Invite-Code!' }, { allowLocked: true }), /Password=Invite-Code!/);
+});
+
 test('installed Project Zomboid presets are discovered with translated descriptions', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'zedwatch-presets-'));
   const presetDirectory = path.join(root, 'media', 'lua', 'shared', 'Sandbox');

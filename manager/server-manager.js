@@ -11,6 +11,7 @@ const { URL } = require('url');
 
 const { createSnapshot, listBuiltInBackups, listSnapshots, restoreBuiltInBackup, restoreSnapshot, safeName } = require('./lib/backups');
 const { requireMutationToken: verifyMutationToken } = require('./lib/api-security');
+const { discoverAuthenticatedAccounts, reconcileAccountLedger } = require('./lib/accounts');
 const { accessModeValues, enrichInstalledSettings, ensureWelcomeSignature, parseIni, parseLuaSettings, readIniFile, readSandboxPresets, setIniValues, updateIni, updateLuaSettings, validateSharedPassword } = require('./lib/config');
 const { discoverMods, importZip, joinList, lookupWorkshopItem, parseWorkshopId, removeLocalMod, splitList } = require('./lib/mods');
 const { resolveLanIp } = require('./lib/network');
@@ -26,6 +27,7 @@ const MANAGER_VERSION = '1.0.0';
 const SERVER_ID = 'zedwatch';
 const SERVER_DIR = path.join(ROOT, 'server');
 const DATA_DIR = path.join(ROOT, 'data');
+const GAME_LOGS_DIR = path.join(DATA_DIR, 'Logs');
 const SERVER_CONFIG_DIR = path.join(DATA_DIR, 'Server');
 const CONFIG_PATH = path.join(SERVER_CONFIG_DIR, `${SERVER_ID}.ini`);
 const SANDBOX_PATH = path.join(SERVER_CONFIG_DIR, `${SERVER_ID}_SandboxVars.lua`);
@@ -118,6 +120,59 @@ function persistWhitelist() {
   writeJson(WHITELIST_LEDGER_PATH, whitelistLedger);
 }
 
+function whitelistEntry(username, { includeRemoved = false } = {}) {
+  const key = String(username || '').toLowerCase();
+  return whitelistLedger.find((entry) =>
+    String(entry.username || '').toLowerCase() === key && (includeRemoved || !entry.removed));
+}
+
+function playerPasswordKey(username) {
+  const key = String(username || '').toLowerCase();
+  return Object.keys(secrets.playerPasswords || {}).find((item) => item.toLowerCase() === key);
+}
+
+function storedPlayerPassword(username) {
+  const key = playerPasswordKey(username);
+  return key ? secrets.playerPasswords[key] : '';
+}
+
+function storePlayerPassword(username, password) {
+  secrets.playerPasswords ||= {};
+  const existingKey = playerPasswordKey(username);
+  if (existingKey && existingKey !== username) delete secrets.playerPasswords[existingKey];
+  secrets.playerPasswords[username] = password;
+}
+
+function forgetPlayerPassword(username) {
+  const key = playerPasswordKey(username);
+  if (key) delete secrets.playerPasswords[key];
+}
+
+function visibleWhitelistEntries() {
+  return whitelistLedger
+    .filter((entry) => !entry.removed)
+    .map((entry) => ({
+      ...entry,
+      passwordStored: Boolean(storedPlayerPassword(entry.username)),
+    }));
+}
+
+function syncWhitelistAccounts() {
+  const discovered = discoverAuthenticatedAccounts(GAME_LOGS_DIR);
+  const result = reconcileAccountLedger(whitelistLedger, discovered);
+  if (!result.changed) return result;
+  whitelistLedger = result.ledger;
+  persistWhitelist();
+  updatePrivateInfo();
+  for (const username of result.added) {
+    logEvent('access', `Discovered player-created account ${username}.`);
+  }
+  for (const username of result.restored) {
+    logEvent('access', `Rediscovered player-created account ${username} after a new successful login.`);
+  }
+  return result;
+}
+
 function migrateLegacyPlayerAccountState() {
   const legacyPassword = secrets.initialPlayerPassword;
   const legacyEntry = whitelistLedger.find((entry) => entry.initial === true && entry.username);
@@ -145,7 +200,7 @@ function redactText(value) {
     ...Object.values(secrets.playerPasswords || {}),
   ].filter(Boolean);
   for (const secret of candidates) text = text.split(secret).join('[REDACTED]');
-  text = text.replace(/(adduser\s+"?[^"\s]+"?\s+)(?:"[^"]+"|\S+)/gi, '$1[REDACTED]');
+  text = text.replace(/((?:adduser|setpassword)\s+(?:"[^"]*"|\S+)\s+)(?:"[^"]*"|\S+)/gi, '$1[REDACTED]');
   return text;
 }
 
@@ -186,11 +241,12 @@ function saveSecuritySettings() {
 
 function updatePrivateInfo() {
   const values = configValues();
-  const accountLines = whitelistLedger.length
-    ? whitelistLedger.flatMap((entry) => [
+  const visibleAccounts = whitelistLedger.filter((entry) => !entry.removed);
+  const accountLines = visibleAccounts.length
+    ? visibleAccounts.flatMap((entry) => [
       `Username: ${entry.username}`,
       `Status: ${entry.enabled ? 'enabled' : 'disabled'}`,
-      `Password: ${secrets.playerPasswords?.[entry.username] || '(not stored by ZedWatch)'}`,
+      `Password: ${storedPlayerPassword(entry.username) || '(player-chosen; reset it in ZedWatch if forgotten)'}`,
       '',
     ])
     : [
@@ -703,7 +759,10 @@ async function handleApi(request, response, pathname, url) {
   if (method === 'GET' && pathname === '/api/activity') return sendJson(response, 200, recentActivity(Number(url.searchParams.get('limit') || 120)));
   if (method === 'GET' && pathname === '/api/settings') return sendJson(response, 200, settingsPayload());
   if (method === 'GET' && pathname === '/api/manager-settings') return sendJson(response, 200, managerSettingsResponse());
-  if (method === 'GET' && pathname === '/api/whitelist') return sendJson(response, 200, { users: whitelistLedger });
+  if (method === 'GET' && pathname === '/api/whitelist') {
+    syncWhitelistAccounts();
+    return sendJson(response, 200, { users: visibleWhitelistEntries() });
+  }
   if (method === 'GET' && pathname === '/api/backups') return sendJson(response, 200, { portable: listSnapshots(BACKUPS_DIR), builtIn: listBuiltInBackups(DATA_DIR).map(({ path: ignored, ...item }) => item) });
   if (method === 'GET' && pathname === '/api/mods') return sendJson(response, 200, modsPayload());
   if (method === 'GET' && pathname === '/api/advanced') {
@@ -785,11 +844,26 @@ async function handleApi(request, response, pathname, url) {
     const password = String(body.password || securePassword());
     if (password.length < 10 || password.length > 128 || /[\r\n]/.test(password)) throw new Error('Player password must contain 10 to 128 characters.');
     const result = await rcon().execute(`adduser ${quoteRcon(username)} ${quoteRcon(password)}`);
-    const existing = whitelistLedger.find((entry) => entry.username.toLowerCase() === username.toLowerCase());
-    if (existing) Object.assign(existing, { username, enabled: true, updatedAt: new Date().toISOString() });
-    else whitelistLedger.push({ username, enabled: true, createdAt: new Date().toISOString() });
-    secrets.playerPasswords ||= {};
-    secrets.playerPasswords[username] = password;
+    const existing = whitelistEntry(username, { includeRemoved: true });
+    if (existing) {
+      Object.assign(existing, {
+        username,
+        enabled: true,
+        source: 'zedwatch',
+        updatedAt: new Date().toISOString(),
+      });
+      delete existing.removed;
+      delete existing.removedAt;
+      delete existing.disabledBy;
+    } else {
+      whitelistLedger.push({
+        username,
+        enabled: true,
+        source: 'zedwatch',
+        createdAt: new Date().toISOString(),
+      });
+    }
+    storePlayerPassword(username, password);
     persistWhitelist();
     persistSecrets();
     updatePrivateInfo();
@@ -800,41 +874,68 @@ async function handleApi(request, response, pathname, url) {
     if (!(await isServerRunning())) throw new Error('Start the server before disabling a whitelist account.');
     const body = await readJsonBody(request);
     const username = validateUsername(body.username);
-    const result = await rcon().execute(`removeuserfromwhitelist ${quoteRcon(username)}`);
-    const entry = whitelistLedger.find((item) => item.username.toLowerCase() === username.toLowerCase());
-    if (entry) Object.assign(entry, { enabled: false, updatedAt: new Date().toISOString() });
+    const entry = whitelistEntry(username);
+    if (!entry) throw new Error('Player account was not found.');
+    const result = await rcon().execute(`banuser ${quoteRcon(username)} -r ${quoteRcon('Disabled by ZedWatch')}`);
+    Object.assign(entry, { enabled: false, disabledBy: 'ban', updatedAt: new Date().toISOString() });
     persistWhitelist();
-    logEvent('access', `Disabled whitelist account ${username}.`);
+    updatePrivateInfo();
+    logEvent('access', `Disabled player account ${username}.`);
+    return sendJson(response, 200, { result });
+  }
+  if (method === 'POST' && pathname === '/api/whitelist/enable') {
+    if (!(await isServerRunning())) throw new Error('Start the server before enabling a player account.');
+    const body = await readJsonBody(request);
+    const username = validateUsername(body.username);
+    const entry = whitelistEntry(username);
+    if (!entry) throw new Error('Player account was not found.');
+    const result = await rcon().execute(`unbanuser ${quoteRcon(username)}`);
+    if (entry.disabledBy !== 'ban') {
+      const password = storedPlayerPassword(username);
+      if (password) await rcon().execute(`adduser ${quoteRcon(username)} ${quoteRcon(password)}`);
+    }
+    Object.assign(entry, { enabled: true, updatedAt: new Date().toISOString() });
+    delete entry.disabledBy;
+    persistWhitelist();
+    updatePrivateInfo();
+    logEvent('access', `Enabled player account ${username}.`);
     return sendJson(response, 200, { result });
   }
   if (method === 'POST' && pathname === '/api/whitelist/remove') {
     if (!(await isServerRunning())) throw new Error('Start the server before removing a whitelist account.');
     const body = await readJsonBody(request);
     const username = validateUsername(body.username);
+    const entry = whitelistEntry(username);
+    if (entry?.disabledBy === 'ban') await rcon().execute(`unbanuser ${quoteRcon(username)}`);
     const result = await rcon().execute(`removeuserfromwhitelist ${quoteRcon(username)}`);
-    whitelistLedger = whitelistLedger.filter((item) => item.username.toLowerCase() !== username.toLowerCase());
-    delete secrets.playerPasswords?.[username];
+    const removedAt = new Date().toISOString();
+    if (entry) {
+      Object.assign(entry, { enabled: false, removed: true, removedAt, updatedAt: removedAt });
+      delete entry.disabledBy;
+    } else {
+      whitelistLedger.push({ username, enabled: false, removed: true, removedAt, updatedAt: removedAt });
+    }
+    forgetPlayerPassword(username);
     persistWhitelist();
     persistSecrets();
     updatePrivateInfo();
     logEvent('access', `Removed whitelist account ${username}.`);
     return sendJson(response, 200, { result });
   }
-  if (method === 'POST' && pathname === '/api/whitelist/rotate') {
-    if (!(await isServerRunning())) throw new Error('Start the server before rotating an account password.');
+  if (method === 'POST' && (pathname === '/api/whitelist/reset' || pathname === '/api/whitelist/rotate')) {
+    if (!(await isServerRunning())) throw new Error('Start the server before resetting an account password.');
     const body = await readJsonBody(request);
     const username = validateUsername(body.username);
+    const entry = whitelistEntry(username);
+    if (!entry) throw new Error('Player account was not found.');
     const password = securePassword();
-    await rcon().execute(`removeuserfromwhitelist ${quoteRcon(username)}`);
-    const result = await rcon().execute(`adduser ${quoteRcon(username)} ${quoteRcon(password)}`);
-    secrets.playerPasswords ||= {};
-    secrets.playerPasswords[username] = password;
-    const entry = whitelistLedger.find((item) => item.username.toLowerCase() === username.toLowerCase());
-    if (entry) Object.assign(entry, { enabled: true, updatedAt: new Date().toISOString() });
+    const result = await rcon().execute(`setpassword ${quoteRcon(username)} ${quoteRcon(password)}`);
+    storePlayerPassword(username, password);
+    Object.assign(entry, { updatedAt: new Date().toISOString() });
     persistSecrets();
     persistWhitelist();
     updatePrivateInfo();
-    logEvent('access', `Rotated the password for ${username}.`);
+    logEvent('access', `Reset the password for ${username}.`);
     return sendJson(response, 200, { username, password, result });
   }
 

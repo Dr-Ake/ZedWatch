@@ -41,6 +41,15 @@ test('feature-parity surfaces and API controls are wired', () => {
   ]) assert.ok(app.includes(route), `${route} must be wired`);
 });
 
+test('player-created accounts are explained and have an administrator reset path', () => {
+  assert.match(html, /Password-mode accounts appear after their first successful connection/);
+  assert.match(html, /Player-chosen passwords cannot be viewed/);
+  assert.match(app, /data-user-action="reset"/);
+  assert.match(app, /\/whitelist\/\$\{action\}/);
+  assert.match(app, /Send this new account password to the player privately/);
+  assert.match(manager, /setpassword \$\{quoteRcon\(username\)\} \$\{quoteRcon\(password\)\}/);
+});
+
 test('activity feed stays compact while retaining full logs on disk', () => {
   assert.match(app, /const ACTIVITY_LIMIT = 30;/);
   assert.ok(app.includes('compact.length > ACTIVITY_PREVIEW_LENGTH'));

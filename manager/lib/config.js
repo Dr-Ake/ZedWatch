@@ -241,16 +241,17 @@ function parseIni(text) {
     const key = match[1].trim();
     const value = match[2];
     const metadata = parseCommentMetadata(pendingComments);
+    const secret = /password|token/i.test(key);
     entries.push({
       key, value, lineIndex,
-      type: inferType(value),
+      type: secret ? 'text' : inferType(value),
       category: categoryFor(key),
       description: metadata.description || CURATED_DESCRIPTIONS[key] || `Installed Project Zomboid setting: ${key}.`,
       minimum: metadata.minimum,
       maximum: metadata.maximum,
       defaultValue: metadata.defaultValue,
       locked: LOCKED_KEYS.has(key),
-      secret: /password|token/i.test(key),
+      secret,
     });
     pendingComments = [];
   });
