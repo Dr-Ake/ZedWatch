@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101511">
+  <title>ZedWatch Server Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div id="loading" class="loading-screen">
+    <div class="loading-mark"><span>ZW</span></div>
+    <strong>Establishing watch</strong>
+    <p>Reading the exclusion zone...</p>
+    <div class="loading-line"><i></i></div>
+  </div>
+
+  <div id="app" class="app-shell is-loading">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span>Z</span><i></i></div>
+        <div><strong>ZedWatch</strong><small>SERVER STUDIO</small></div>
+      </div>
+
+      <nav class="nav" aria-label="ZedWatch navigation">
+        <button class="nav-item active" data-page="dashboard"><span>01</span>Overview</button>
+        <button class="nav-item" data-page="settings"><span>02</span>World settings</button>
+        <button class="nav-item" data-page="players"><span>03</span>Players & access</button>
+        <button class="nav-item" data-page="mods"><span>04</span>Workshop mods</button>
+        <button class="nav-item" data-page="backups"><span>05</span>Saves & backups</button>
+        <button class="nav-item" data-page="activity"><span>06</span>Activity & tools</button>
+      </nav>
+
+      <div class="sidebar-note">
+        <span class="signal"></span>
+        <div><strong>Local command post</strong><p>Dashboard and RCON stay on this PC. Only game traffic is allowed through Windows Firewall.</p></div>
+      </div>
+      <footer><span id="manager-version">v1.0.0</span><button id="close-studio" class="text-button">Close studio</button></footer>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div><p id="page-kicker" class="eyebrow">LIVE SITUATION</p><h1 id="page-title">Exclusion zone overview</h1></div>
+        <div class="top-actions">
+          <button id="refresh" class="button ghost">Refresh</button>
+          <div id="status-pill" class="status-pill offline"><i></i><span>Offline</span></div>
+          <button class="button danger running-only" data-action="stop">Save & stop</button>
+          <button class="button primary stopped-only" data-action="start">Start server</button>
+        </div>
+      </header>
+
+      <section class="page active" data-panel="dashboard">
+        <article class="hero">
+          <div class="hero-copy">
+            <div class="hero-status"><span class="pulse"></span><b id="hero-state">WATCH STANDING BY</b></div>
+            <h2 id="server-name">ZedWatch</h2>
+            <p id="server-description">Private Project Zomboid survival server</p>
+            <div class="addresses">
+              <button id="copy-public" class="address"><span>FRIENDS CONNECT</span><strong id="public-address">Checking public route...</strong><small>COPY</small></button>
+              <button id="copy-lan" class="address"><span>HOME NETWORK</span><strong id="lan-address">Checking LAN...</strong><small>COPY</small></button>
+            </div>
+            <div class="hero-actions">
+              <button class="button primary large stopped-only" data-action="start">Start the world</button>
+              <button class="button danger large running-only" data-action="stop">Save & stop</button>
+              <button class="button ghost large" data-action="launch-game">Launch Project Zomboid</button>
+            </div>
+          </div>
+          <div class="radar" aria-hidden="true">
+            <div class="radar-ring r1"></div><div class="radar-ring r2"></div><div class="radar-ring r3"></div>
+            <div class="sweep"></div>
+            <i class="contact c1"></i><i class="contact c2"></i><i class="contact c3"></i>
+            <div class="radar-core"><span id="radar-version">PZ</span><small>STABLE</small></div>
+          </div>
+        </article>
+
+        <div class="metric-grid">
+          <article class="metric"><span>CONNECTED SURVIVORS</span><strong><b id="player-count">0</b> / <b id="player-limit">8</b></strong><small id="player-summary">World is offline</small></article>
+          <article class="metric"><span>SERVER MEMORY</span><strong id="memory">0 MB</strong><small>8 GB managed ceiling</small></article>
+          <article class="metric"><span>PROTECTION LAYERS</span><strong id="backup-count">0</strong><small id="backup-summary">Portable + built-in backups</small></article>
+          <article class="metric"><span>DEPLOYED BUILD</span><strong id="build-id">—</strong><small id="build-summary">Public stable Steam branch</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel access-panel">
+            <div class="panel-head"><div><p class="eyebrow">PERIMETER CONTROL</p><h3>Who gets through?</h3></div><span id="access-badge" class="badge">WHITELIST</span></div>
+            <div class="segmented" role="group" aria-label="Access mode">
+              <button id="mode-whitelist" data-mode="whitelist" class="active"><strong>Whitelist</strong><small>Only named accounts</small></button>
+              <button id="mode-password" data-mode="password"><strong>Password</strong><small>Anyone with the code</small></button>
+            </div>
+            <div class="setting-row">
+              <div><strong>In-game server browser</strong><p>Visibility never weakens the selected access protection.</p></div>
+              <label class="switch"><input id="public-listing" type="checkbox"><span></span></label>
+            </div>
+            <p id="access-lock-note" class="fine-print">Access can be changed while the server is stopped.</p>
+          </article>
+
+          <article class="panel protection-panel">
+            <div class="panel-head"><div><p class="eyebrow">WORLD PROTECTION</p><h3>Four layers armed</h3></div><span class="badge safe">PROTECTED</span></div>
+            <div class="protection-list">
+              <div><i>01</i><span><strong>Graceful saves</strong><small>RCON save before every managed stop</small></span></div>
+              <div><i>02</i><span><strong>Built-in archives</strong><small>Start and version-change protection</small></span></div>
+              <div><i>03</i><span><strong>Portable snapshots</strong><small>Twelve restorable copies retained</small></span></div>
+              <div><i>04</i><span><strong>Crash watch</strong><small id="watchdog-summary">Three tries in ten minutes</small></span></div>
+            </div>
+            <button class="button soft full" data-go="backups">Manage world protection</button>
+          </article>
+        </div>
+
+        <article class="panel readiness">
+          <div class="panel-head"><div><p class="eyebrow">READINESS BOARD</p><h3>Before friends arrive</h3></div></div>
+          <div class="readiness-grid">
+            <div class="ready"><i>✓</i><span><strong id="stable-version-ready">Public stable installed</strong><small>Official dedicated server</small></span></div>
+            <div class="ready"><i>✓</i><span><strong>Vanilla Outbreak</strong><small>No mods enabled initially</small></span></div>
+            <div class="ready"><i>✓</i><span><strong>Drake secured</strong><small>Normal player account</small></span></div>
+            <div class="ready"><i>✓</i><span><strong>Firewall scoped</strong><small>UDP 16261–16262 only</small></span></div>
+            <div id="startup-ready" class="ready muted"><i>5</i><span><strong>Windows startup</strong><small>Manual by default</small></span></div>
+            <div class="ready warning"><i>!</i><span><strong>Router forwarding</strong><small>Forward both UDP ports manually</small></span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="page" data-panel="settings">
+        <div id="settings-lock" class="lock-banner" hidden><b>SETTINGS LOCKED</b><span>Save and stop the world before changing server rules.</span></div>
+        <div class="toolbar">
+          <label class="search"><span>SEARCH</span><input id="settings-search" type="search" placeholder="Find any installed setting..."></label>
+          <label class="preset-select"><span>PRESET</span><select id="settings-preset" aria-label="World preset"><option value="">Choose a preset...</option></select></label>
+          <button id="discard-settings" class="button ghost" disabled>Discard</button>
+          <button id="save-settings" class="button primary" disabled>Save changes</button>
+        </div>
+        <div id="settings-preset-status" class="preset-status" role="status" hidden></div>
+        <div id="settings-groups" class="settings-groups" role="tablist" aria-label="World setting categories"></div>
+        <div class="settings-summary">
+          <div>
+            <p id="settings-group-eyebrow" class="eyebrow">SETTINGS CATEGORY</p>
+            <h2 id="settings-group-title">Identity &amp; access</h2>
+            <p id="settings-group-description">Server identity, joining, authentication, and account rules.</p>
+          </div>
+          <div class="summary-count"><strong id="settings-count">0</strong><span>options shown</span></div>
+        </div>
+        <div id="settings-grid" class="settings-grid" role="tabpanel" aria-live="polite"></div>
+        <div id="settings-empty" class="empty" hidden>No settings match that search.</div>
+      </section>
+
+      <section class="page" data-panel="players">
+        <div class="two-column">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">WHITELIST ROSTER</p><h3>Cleared survivors</h3><p>Accounts are created through the live server and receive individual passwords.</p></div><span id="whitelist-count" class="badge">0 USERS</span></div>
+            <form id="add-user-form" class="inline-form">
+              <label><span>USERNAME</span><input id="new-username" required maxlength="32" placeholder="Survivor name"></label>
+              <label><span>PASSWORD</span><input id="new-user-password" type="password" minlength="10" placeholder="Leave blank to generate"></label>
+              <button class="button primary" type="submit">Add account</button>
+            </form>
+            <p class="fine-print">The server must be running to add, disable, remove, or rotate an account.</p>
+            <div id="whitelist-list" class="account-list"></div>
+          </article>
+
+          <aside class="stack">
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">SHARED ACCESS</p><h3>Password mode code</h3></div></div>
+              <p>Stored securely and activated only when password mode is selected. You can check it at any time.</p>
+              <div class="password-view">
+                <label class="field"><span>CURRENT PASSWORD</span><input id="shared-password-current" type="password" readonly placeholder="Click Show password" aria-label="Current shared password"></label>
+                <div class="password-actions">
+                  <button id="toggle-shared-password" class="button soft" type="button">Show password</button>
+                  <button id="copy-shared-password" class="button ghost" type="button" disabled>Copy</button>
+                </div>
+              </div>
+              <form id="shared-password-form" class="password-form">
+                <label class="field"><span>NEW CUSTOM PASSWORD</span><input id="shared-password-new" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="4 to 64 characters" required></label>
+                <label class="field"><span>CONFIRM PASSWORD</span><input id="shared-password-confirm" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="Type it again" required></label>
+                <button id="set-shared-password" class="button primary full" type="submit">Set custom password</button>
+              </form>
+              <div class="password-divider"><span>OR</span></div>
+              <button id="rotate-shared" class="button soft full" type="button">Generate secure password</button>
+              <p class="fine-print">Changing or generating the password requires the game server to be stopped. The value is never written to activity logs.</p>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">RADIO MESSAGE</p><h3>Broadcast to players</h3></div></div>
+              <form id="broadcast-form">
+                <textarea id="broadcast-message" maxlength="300" placeholder="Server restart in ten minutes..."></textarea>
+                <button class="button primary full" type="submit">Send broadcast</button>
+              </form>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" data-panel="mods">
+        <div id="mods-lock" class="lock-banner" hidden><b>MODS LOCKED</b><span>Save and stop the world before changing the mod collection.</span></div>
+        <article class="mod-hero">
+          <div><p class="eyebrow">VANILLA-FIRST DEPLOYMENT</p><h2>Workshop support for the installed stable build.</h2><p>ZedWatch validates Project Zomboid Workshop items, discovers their internal mod IDs, compares declared versions, and protects the world before changes.</p></div>
+          <div class="vanilla-seal"><strong>0</strong><span>ACTIVE AT<br>FIRST LAUNCH</span></div>
+        </article>
+        <div class="two-column mods-layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">SERVER COLLECTION</p><h3>Discovered packages</h3></div><span id="mod-count" class="badge">0 MODS</span></div>
+            <div id="mods-list" class="mod-list"></div>
+            <div id="mods-empty" class="empty">No mods installed. The first world stays clean and vanilla.</div>
+          </article>
+          <aside class="stack">
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">STEAM WORKSHOP</p><h3>Add an item</h3></div></div>
+              <form id="workshop-form">
+                <label class="field"><span>WORKSHOP URL OR ID</span><input id="workshop-value" required placeholder="https://steamcommunity.com/...id=..."></label>
+                <button class="button primary full" type="submit">Validate & add</button>
+              </form>
+              <p class="fine-print">The dedicated server downloads staged Workshop items on its next start.</p>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">LOCAL PACKAGE</p><h3>Import a ZIP</h3></div></div>
+              <label class="upload-button"><input id="mod-upload" type="file" accept=".zip,application/zip"><span>Choose Project Zomboid mod ZIP</span></label>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" data-panel="backups">
+        <div class="section-intro"><div><p class="eyebrow">WORLD ARCHIVE</p><h2>Layered recovery without guesswork.</h2><p>Restores are deliberate and always create one more safety snapshot first.</p></div><button id="create-backup" class="button primary">Create portable snapshot</button></div>
+        <div class="backup-stats">
+          <div><span>PORTABLE SNAPSHOTS</span><strong id="portable-count">0</strong><small>12 retained</small></div>
+          <div><span>BUILT-IN ARCHIVES</span><strong id="builtin-count">0</strong><small>Managed by Project Zomboid</small></div>
+          <div><span>LATEST PROTECTION</span><strong id="latest-backup-time">—</strong><small>Local time</small></div>
+        </div>
+        <div class="two-column">
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">PORTABLE</p><h3>ZedWatch snapshots</h3></div></div><div id="portable-list" class="backup-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><p class="eyebrow">BUILT-IN</p><h3>Version and start backups</h3></div></div><div id="builtin-list" class="backup-list"></div></article>
+        </div>
+      </section>
+
+      <section class="page" data-panel="activity">
+        <div class="two-column tools-layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">ACTIVITY LOG</p><h3>Recent command-post events</h3></div><button id="refresh-activity" class="button ghost">Refresh</button></div>
+            <div id="activity-list" class="activity-list"></div>
+          </article>
+          <aside class="stack">
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">AUTOMATION</p><h3>Recovery & startup</h3></div></div>
+              <div class="setting-row"><div><strong>Crash recovery</strong><p>Bounded to three restarts in ten minutes.</p></div><label class="switch"><input id="watchdog-enabled" type="checkbox"><span></span></label></div>
+              <div class="setting-row"><div><strong>Start with Windows</strong><p>Off by default; resumes desired server state.</p></div><label class="switch"><input id="startup-enabled" type="checkbox"><span></span></label></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">MAINTENANCE</p><h3>Server tools</h3></div></div>
+              <div class="button-stack">
+                <button class="button soft" data-action="save">Save world now</button>
+                <button class="button soft" data-action="restart">Save & restart</button>
+                <button class="button soft" data-action="update">Backup & update stable</button>
+                <button class="button danger" data-action="force-stop">Force stop stuck server</button>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">FILES</p><h3>Open trusted folders</h3></div></div>
+              <div class="folder-grid">
+                <button data-folder="saves">Saves</button><button data-folder="config">Config</button>
+                <button data-folder="backups">Backups</button><button data-folder="mods">Mods</button>
+                <button data-folder="logs">Logs</button><button data-folder="root">ZedWatch</button>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><div><p class="eyebrow">ADVANCED LUA</p><h3>Spawn and sandbox files</h3></div></div>
+              <select id="advanced-file"><option value="">Choose a file...</option></select>
+              <textarea id="advanced-content" class="code-editor" spellcheck="false" disabled></textarea>
+              <button id="save-advanced" class="button primary full" disabled>Save advanced file</button>
+            </article>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="credential-dialog">
+    <form method="dialog">
+      <p class="eyebrow">PRIVATE CREDENTIAL</p>
+      <h2 id="credential-title">Account ready</h2>
+      <p id="credential-copy">Copy this now and send it privately.</p>
+      <button id="credential-value" class="credential-value" type="button">—</button>
+      <div class="dialog-actions"><button class="button primary" value="close">Done</button></div>
+    </form>
+  </dialog>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
