@@ -94,7 +94,6 @@ let secrets = readJson(SECRETS_PATH, {
   adminPassword: '',
   rconPassword: '',
   sharedJoinPassword: '',
-  initialPlayerPassword: '',
   playerPasswords: {},
 });
 let whitelistLedger = readJson(WHITELIST_LEDGER_PATH, []);
@@ -119,13 +118,30 @@ function persistWhitelist() {
   writeJson(WHITELIST_LEDGER_PATH, whitelistLedger);
 }
 
+function migrateLegacyPlayerAccountState() {
+  const legacyPassword = secrets.initialPlayerPassword;
+  const legacyEntry = whitelistLedger.find((entry) => entry.initial === true && entry.username);
+  const hadLegacySecret = Object.prototype.hasOwnProperty.call(secrets, 'initialPlayerPassword');
+  const hadLegacyFlags = whitelistLedger.some((entry) => Object.prototype.hasOwnProperty.call(entry, 'initial'));
+  secrets.playerPasswords ||= {};
+  if (legacyPassword && legacyEntry && !secrets.playerPasswords[legacyEntry.username]) {
+    secrets.playerPasswords[legacyEntry.username] = legacyPassword;
+  }
+  delete secrets.initialPlayerPassword;
+  whitelistLedger = whitelistLedger.map(({ initial: ignored, ...entry }) => entry);
+  if (hadLegacySecret) persistSecrets();
+  if (hadLegacyFlags) persistWhitelist();
+  if (hadLegacySecret || hadLegacyFlags) updatePrivateInfo();
+}
+
+migrateLegacyPlayerAccountState();
+
 function redactText(value) {
   let text = String(value ?? '');
   const candidates = [
     secrets.adminPassword,
     secrets.rconPassword,
     secrets.sharedJoinPassword,
-    secrets.initialPlayerPassword,
     ...Object.values(secrets.playerPasswords || {}),
   ].filter(Boolean);
   for (const secret of candidates) text = text.split(secret).join('[REDACTED]');
@@ -170,6 +186,18 @@ function saveSecuritySettings() {
 
 function updatePrivateInfo() {
   const values = configValues();
+  const accountLines = whitelistLedger.length
+    ? whitelistLedger.flatMap((entry) => [
+      `Username: ${entry.username}`,
+      `Status: ${entry.enabled ? 'enabled' : 'disabled'}`,
+      `Password: ${secrets.playerPasswords?.[entry.username] || '(not stored by ZedWatch)'}`,
+      '',
+    ])
+    : [
+      'No player accounts are configured.',
+      'Add accounts in the dashboard under Players & access.',
+      '',
+    ];
   const lines = [
     'ZedWatch Server Information - PRIVATE',
     '=====================================',
@@ -182,11 +210,9 @@ function updatePrivateInfo() {
     `Access mode: ${managerSettings.accessMode}`,
     `Public listing: ${managerSettings.publicListing ? 'enabled' : 'disabled'}`,
     '',
-    'PLAYER ACCOUNT',
-    '--------------',
-    'Username: Drake',
-    `Password: ${secrets.playerPasswords?.Drake || secrets.initialPlayerPassword || '(created during installation)'}`,
-    '',
+    'PLAYER ACCOUNTS',
+    '---------------',
+    ...accountLines,
     'PASSWORD MODE',
     '-------------',
     `Shared join password: ${secrets.sharedJoinPassword || '(not generated)'}`,
@@ -308,25 +334,6 @@ function validateUsername(username) {
   return value;
 }
 
-async function ensureInitialPlayer() {
-  const username = 'Drake';
-  if (!secrets.initialPlayerPassword) return;
-  try {
-    await rcon().execute(`adduser ${quoteRcon(username)} ${quoteRcon(secrets.initialPlayerPassword)}`);
-    const existing = whitelistLedger.find((entry) => entry.username.toLowerCase() === username.toLowerCase());
-    if (!existing) whitelistLedger.push({ username, enabled: true, initial: true, createdAt: new Date().toISOString() });
-    else existing.enabled = true;
-    secrets.playerPasswords ||= {};
-    secrets.playerPasswords[username] = secrets.initialPlayerPassword;
-    persistWhitelist();
-    persistSecrets();
-    updatePrivateInfo();
-    logEvent('access', 'Verified the initial Drake whitelist account.');
-  } catch (error) {
-    logEvent('warning', `Initial player verification returned: ${error.message}`);
-  }
-}
-
 async function launchServer(source = 'manual') {
   if (await isUpdateRunning()) throw new Error('Wait for the server update to finish.');
   if (await isServerRunning()) return { alreadyRunning: true, pid: managedPid };
@@ -360,7 +367,6 @@ async function launchServer(source = 'manual') {
     await waitForRcon();
     transition = null;
     watchdog.noteStartSucceeded();
-    await ensureInitialPlayer();
     return { pid: managedPid };
   } catch (error) {
     transition = null;

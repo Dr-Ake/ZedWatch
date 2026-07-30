@@ -18,26 +18,15 @@ test('installer pins ZedWatch identity, ports, access defaults, and independent 
   assert.match(installer, /RCONPort = '27025'/);
   assert.match(installer, /MaxPlayers = '8'/);
   assert.match(installer, /AutoCreateUserInWhiteList = 'false'/);
-  assert.match(installer, /Drake/);
   assert.match(installer, /Outbreak\.lua/);
   assert.match(installer, /_steamcmd/);
   assert.match(installer, /\.runtime/);
 });
 
-test('repository metadata and personal defaults stay assigned to Dr-Ake and Drake', () => {
+test('repository metadata and privacy defaults stay assigned to ZedWatch', () => {
   const packageMetadata = JSON.parse(read('package.json'));
   assert.equal(packageMetadata.author, 'Dr-Ake');
   assert.equal(packageMetadata.repository.url, 'https://github.com/Dr-Ake/ZedWatch.git');
-
-  for (const relative of [
-    'README.md',
-    'scripts/Install-ZedWatch.ps1',
-    'manager/server-manager.js',
-    'manager/public/index.html',
-  ]) {
-    const content = read(relative);
-    assert.match(content, /Drake/, `${relative} must retain Drake as the initial player`);
-  }
 
   const ignore = read('.gitignore');
   for (const protectedPath of [
@@ -50,6 +39,18 @@ test('repository metadata and personal defaults stay assigned to Dr-Ake and Drak
   ]) {
     assert.match(ignore, new RegExp(protectedPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+});
+
+test('fresh installations never create a default player account', () => {
+  const installer = read('scripts/Install-ZedWatch.ps1');
+  const manager = read('manager/server-manager.js');
+  const dashboard = read('manager/public/index.html');
+  const readme = read('README.md');
+  assert.match(installer, /without creating a player account/i);
+  assert.doesNotMatch(installer, /Username:\s*[A-Za-z0-9]/);
+  assert.doesNotMatch(manager, /ensureInitialPlayer/);
+  assert.match(dashboard, /No player name is created automatically/);
+  assert.match(readme, /No player account is created automatically/);
 });
 
 test('launcher uses the bundled 64-bit JVM with the managed heap and server ID', () => {

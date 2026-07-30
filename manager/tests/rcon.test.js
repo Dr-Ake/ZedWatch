@@ -23,7 +23,7 @@ test('RCON decoder retains partial frames and rejects unsafe lengths', () => {
 });
 
 test('credential-bearing commands and known secrets are redacted', () => {
-  const value = 'adduser "Drake" "Hunter-Secret-123" Password=Join-Secret RCONPassword=Rcon-Secret';
+  const value = 'adduser "PlayerOne" "Hunter-Secret-123" Password=Join-Secret RCONPassword=Rcon-Secret';
   const redacted = redactRconText(value, ['Hunter-Secret-123', 'Join-Secret', 'Rcon-Secret']);
   assert.doesNotMatch(redacted, /Hunter-Secret-123|Join-Secret|Rcon-Secret/);
   assert.match(redacted, /REDACTED/);

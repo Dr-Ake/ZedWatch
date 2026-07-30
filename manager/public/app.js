@@ -390,7 +390,7 @@ function renderWhitelist() {
   $('#whitelist-list').innerHTML = users.length ? users.map((user) => `
     <div class="account-row">
       <div class="account-avatar">${escapeHtml(user.username.slice(0, 2).toUpperCase())}</div>
-      <div><strong>${escapeHtml(user.username)}</strong><small>${user.enabled ? 'Cleared to enter' : 'Disabled'}${user.initial ? ' · Initial account' : ''}</small></div>
+      <div><strong>${escapeHtml(user.username)}</strong><small>${user.enabled ? 'Cleared to enter' : 'Disabled'}</small></div>
       <span class="badge ${user.enabled ? 'safe' : ''}">${user.enabled ? 'ACTIVE' : 'DISABLED'}</span>
       <div class="row-actions">
         <button data-user-action="rotate" data-username="${escapeHtml(user.username)}">Rotate</button>
