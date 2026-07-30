@@ -1,0 +1,15 @@
+{
+  "name": "zedwatch-server-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Windows control panel and safe installer for Project Zomboid Dedicated Server.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "test": "node --test manager/tests/*.test.js",
+    "check": "node --check manager/server-manager.js && node --check manager/public/app.js && node --check manager/lib/api-security.js && node --check manager/lib/config.js && node --check manager/lib/rcon.js && node --check manager/lib/backups.js && node --check manager/lib/mods.js && node --check manager/lib/version.js && node --check manager/lib/watchdog.js && node --check manager/lib/network.js",
+    "verify": "npm run check && npm test"
+  }
+}

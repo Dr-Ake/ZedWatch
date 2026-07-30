@@ -1,0 +1,26 @@
+# Downloaded runtimes and game files
+/.runtime/
+/_steamcmd/
+/server/
+/_prerequisites/
+/_release/
+
+# Live server data and private information
+/data/
+/manager/backups/
+/manager/logs/
+/manager/config-history/
+/manager/mod-staging/
+/manager/manager-settings.json
+/manager/secrets.json
+/manager/whitelist-ledger.json
+/manager/generated-start-server.bat
+/ZedWatch Server Info - Private.txt
+
+# Local/editor output
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+node_modules/

@@ -1,0 +1,13 @@
+{
+  "accessMode": "whitelist",
+  "publicListing": false,
+  "startupEnabled": false,
+  "desiredRunning": false,
+  "watchdog": {
+    "enabled": true,
+    "pollIntervalSeconds": 15,
+    "restartDelaySeconds": 30,
+    "maxRestarts": 3,
+    "restartWindowMinutes": 10
+  }
+}
