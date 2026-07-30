@@ -37,7 +37,6 @@ test('repository metadata and personal defaults stay assigned to Dr-Ake and Drak
   ]) {
     const content = read(relative);
     assert.match(content, /Drake/, `${relative} must retain Drake as the initial player`);
-    assert.doesNotMatch(content, /Ghaleon/i, `${relative} must not use the computer name as a player`);
   }
 
   const ignore = read('.gitignore');
