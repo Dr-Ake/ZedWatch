@@ -3,7 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "description": "Local Windows control panel and safe installer for Project Zomboid Dedicated Server.",
+  "author": "Dr-Ake",
   "license": "MIT",
+  "homepage": "https://github.com/Dr-Ake/ZedWatch#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dr-Ake/ZedWatch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Dr-Ake/ZedWatch/issues"
+  },
   "engines": {
     "node": ">=22.13"
   },

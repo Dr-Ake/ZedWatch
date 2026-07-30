@@ -24,6 +24,34 @@ test('installer pins ZedWatch identity, ports, access defaults, and independent 
   assert.match(installer, /\.runtime/);
 });
 
+test('repository metadata and personal defaults stay assigned to Dr-Ake and Drake', () => {
+  const packageMetadata = JSON.parse(read('package.json'));
+  assert.equal(packageMetadata.author, 'Dr-Ake');
+  assert.equal(packageMetadata.repository.url, 'https://github.com/Dr-Ake/ZedWatch.git');
+
+  for (const relative of [
+    'README.md',
+    'scripts/Install-ZedWatch.ps1',
+    'manager/server-manager.js',
+    'manager/public/index.html',
+  ]) {
+    const content = read(relative);
+    assert.match(content, /Drake/, `${relative} must retain Drake as the initial player`);
+  }
+
+  const ignore = read('.gitignore');
+  for (const protectedPath of [
+    '/data/',
+    '/server/',
+    '/manager/secrets*.json',
+    '/manager/whitelist-ledger*.json',
+    '/_uninstall-backups/',
+    '/ZedWatch Server Info - Private.txt',
+  ]) {
+    assert.match(ignore, new RegExp(protectedPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
 test('launcher uses the bundled 64-bit JVM with the managed heap and server ID', () => {
   const launcher = read('scripts/New-ZedWatchLauncher.ps1');
   assert.match(launcher, /StartServer64\.bat/);
