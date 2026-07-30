@@ -38,7 +38,7 @@ function decodePackets(buffer) {
 function redactRconText(value, secretValues = []) {
   let text = String(value ?? '');
   for (const secret of secretValues.map(String).filter(Boolean)) text = text.split(secret).join('[REDACTED]');
-  text = text.replace(/\b(adduser|setaccesslevel)\s+"?[^"\s]+"?\s+"?[^"\r\n]+"?/gi, '$1 [REDACTED CREDENTIALS]');
+  text = text.replace(/\b(adduser|setpassword|setaccesslevel)\s+(?:"[^"]*"|\S+)\s+(?:"[^"]*"|\S+)/gi, '$1 [REDACTED CREDENTIALS]');
   text = text.replace(/\b(RCONPassword|Password)\s*[=:]\s*\S+/gi, '$1=[REDACTED]');
   return text;
 }
