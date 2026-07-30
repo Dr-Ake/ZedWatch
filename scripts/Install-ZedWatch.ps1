@@ -303,10 +303,10 @@ function Write-PrivateInfo([pscustomobject] $SecretValues) {
         'Access mode: whitelist'
         'Public listing: disabled'
         ''
-        'PLAYER ACCOUNT'
-        '--------------'
-        'Username: Drake'
-        ('Password: {0}' -f $SecretValues.initialPlayerPassword)
+        'PLAYER ACCOUNTS'
+        '---------------'
+        'No player account is created automatically.'
+        'Add accounts in the dashboard under Players & access.'
         ''
         'PASSWORD MODE'
         '-------------'
@@ -333,7 +333,7 @@ if ($DryRun) {
     Write-Host "Install root: $InstallRoot"
     Write-Host 'Would install verified portable Node.js LTS.'
     Write-Host 'Would install SteamCMD and public stable app 380870.'
-    Write-Host 'Would bootstrap Build 42 configuration, Outbreak, whitelist access, and the Drake account.'
+    Write-Host 'Would bootstrap Build 42 configuration, Outbreak, and whitelist access without creating a player account.'
     Write-Host 'Would allow only UDP 16261-16262 for the bundled server Java executable.'
     exit 0
 }
@@ -356,11 +356,13 @@ try {
             adminPassword = New-SecurePassword
             rconPassword = New-SecurePassword
             sharedJoinPassword = New-SecurePassword
-            initialPlayerPassword = New-SecurePassword
             playerPasswords = [pscustomobject] @{}
         }
     }
-    foreach ($name in @('adminPassword', 'rconPassword', 'sharedJoinPassword', 'initialPlayerPassword')) {
+    if ($secrets.PSObject.Properties.Name -contains 'initialPlayerPassword') {
+        $secrets.PSObject.Properties.Remove('initialPlayerPassword')
+    }
+    foreach ($name in @('adminPassword', 'rconPassword', 'sharedJoinPassword')) {
         if ([string]::IsNullOrWhiteSpace([string] $secrets.$name)) { $secrets.$name = New-SecurePassword }
     }
     Write-Utf8NoBom -Path $SecretsPath -Content ($secrets | ConvertTo-Json -Depth 5)

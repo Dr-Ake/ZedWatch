@@ -12,7 +12,7 @@ for settings, access, saves, backups, updates, mods, and crash recovery.
 - Outbreak sandbox preset
 - Eight players
 - Private, direct-connect, whitelist-only access
-- Initial normal player account `Drake`
+- No player account is created automatically; add only the accounts you choose
 - Game ports UDP `16261` and `16262`
 - Local dashboard `127.0.0.1:16300`
 - Local RCON TCP `27025` (not opened in Windows Firewall)

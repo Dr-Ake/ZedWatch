@@ -97,7 +97,7 @@ test('setting categories do not confuse gameplay words with network or identity 
 });
 
 test('custom shared passwords accept visible values without unsafe whitespace or controls', () => {
-  assert.equal(validateSharedPassword('Drake Base 42!'), 'Drake Base 42!');
+  assert.equal(validateSharedPassword('Example Base 42!'), 'Example Base 42!');
   assert.throws(() => validateSharedPassword('abc'), /4 to 64/);
   assert.throws(() => validateSharedPassword(' leading-space'), /begin or end/);
   assert.throws(() => validateSharedPassword('line\nbreak'), /control characters/);

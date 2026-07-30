@@ -17,7 +17,7 @@ function fixture() {
   fs.mkdirSync(path.dirname(managerSettingsPath), { recursive: true });
   fs.writeFileSync(path.join(dataRoot, 'Saves', 'Multiplayer', 'zedwatch', 'map.bin'), 'first world');
   fs.writeFileSync(managerSettingsPath, '{"accessMode":"whitelist"}');
-  fs.writeFileSync(whitelistLedgerPath, '[{"username":"Drake","enabled":true}]');
+  fs.writeFileSync(whitelistLedgerPath, '[{"username":"PlayerOne","enabled":true}]');
   return { root, dataRoot, backupsRoot, managerSettingsPath, whitelistLedgerPath };
 }
 
