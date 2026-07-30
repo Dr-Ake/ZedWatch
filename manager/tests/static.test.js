@@ -100,5 +100,6 @@ test('shared join passwords can be set, revealed, copied, and generated without 
   assert.match(manager, /pathname === '\/api\/access\/shared-password\/reveal'/);
   assert.match(manager, /pathname === '\/api\/access\/shared-password'/);
   assert.match(manager, /Shared join password updated manually\./);
+  assert.match(manager, /async function launchServer[\s\S]*?saveSecuritySettings\(\);[\s\S]*?detectPortCollisions\(\)/);
   assert.doesNotMatch(manager, /logEvent\([^)]*sharedJoinPassword/);
 });

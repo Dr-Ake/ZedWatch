@@ -394,6 +394,7 @@ async function launchServer(source = 'manual') {
   if (await isUpdateRunning()) throw new Error('Wait for the server update to finish.');
   if (await isServerRunning()) return { alreadyRunning: true, pid: managedPid };
   if (!fs.existsSync(GENERATED_LAUNCHER)) throw new Error('Managed launcher is missing. Run Install ZedWatch.bat to repair the installation.');
+  saveSecuritySettings();
   const collisions = await detectPortCollisions();
   if (collisions.length) {
     throw new Error(`A different process is already using ZedWatch port(s): ${collisions.map((entry) => `${entry.LocalPort} (PID ${entry.OwningProcess})`).join(', ')}.`);
